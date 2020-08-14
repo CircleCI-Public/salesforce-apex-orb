@@ -1,0 +1,33 @@
+# Deploy source.
+description: >
+  Use this command to deploy source (metadata that’s in source format) to an org. To deploy metadata that's in metadata format, see "apex/mdapi-deploy"
+parameters:
+  organization-alias:
+    description: "The alias of the org to use."
+    type: string
+    default: ""
+  checkonly:
+    description: "Validate deploy, but don't save to org."
+    type: boolean
+    default: false
+  wait-time:
+    description: "Maximum amount of time to complete deployment."
+    type: integer
+    default: 5
+  sourcepath:
+    description: "Comma-seperated list of metadata component names."
+    type: string
+    default: ""
+  manifest:
+    description: "File path for manifest file (package.xml) of components to deploy."
+    type: string
+    default: ""
+
+steps:
+  - run:
+      name: Deploy Community metadata
+      command: sfdx force:source:deploy <<#parameters.organization-alias>> -u <<parameters.organization-alias>> <</parameters.organization-alias>>
+        <<#parameters.checkonly>> --checkonly <</parameters.checkonly>>
+        <<#parameters.sourcepath>> --sourcepath=<<parameters.sourcepath>> <</parameters.sourcepath>>
+        <<#parameters.manifest>> --manifest=<<parameters.manifest>> <</parameters.manifest>>
+        -w << parameters.wait-time >>

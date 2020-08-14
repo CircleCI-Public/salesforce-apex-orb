@@ -11,31 +11,40 @@ parameters:
     type: string
     default: "12.6"
   cli-version:
-    description: 'By default, the latest version of the standalone CLI will be installed. To install via npm, supply a version tag such as "latest" or "6".'
-    default: ''
+    description: By default, the latest version of the standalone CLI will be installed. To install via npm, supply a version tag such as "latest" or "6".
+    default: ""
     type: string
-  scratch-alias:
+  organization-alias:
     description: Sets an alias for the scratch org to ensure commands are run against the correct org.
     type: string
   scratch-def:
-    description: Full path to scratch org definition json file. Example:'./config/project-scratch-def.json'
+    description: Full path to scratch org definition json file. Example:"./config/project-scratch-def.json"
     type: string
   permset:
-    description: 'Assign a pre-defined permission set to the default user. Learn more: https://help.salesforce.com/articleView?id=perm_sets_create.htm&type=5'
+    description: "Assign a pre-defined permission set to the default user. Learn more: https://help.salesforce.com/articleView?id=perm_sets_create.htm&type=5"
     type: string
   sampledata-path:
-    description: 'Path location to sample data json file. Example: ./data/sample-data-plan.json'
+    description: "Path location to sample data json file. Example: ./data/sample-data-plan.json"
     type: string
-  deploydir:
-    description: 'The root of the directory tree that contains the files to deploy. The root must contain a valid package.xml file describing the entities in the directory structure.'
+  manifest:
+    description: "File path for manifest file (package.xml) of components to deploy."
     type: string
+    default: ""
+  sourcepath:
+    description: "Directory to deploy."
+    type: string
+    default: ""
+  deploy-dir:
+    description: "Directory to deploy."
+    type: string
+    default: ""
   defaultusername:
     description: The username for an org that all commands run against by default.
     type: string
-  mdapi-wait-time:
-    description: "Maximum amount of time to complete mdapi deployment."
+  source-deploy-wait-time:
+    description: "Maximum amount of time to complete source deployment."
     type: integer
-    default: -1
+    default: 5
   test-wait-time:
     description: "Maximum amount of time to complete tests."
     type: integer
@@ -48,21 +57,33 @@ steps:
       defaultusername: <<parameters.defaultusername>>
   - scratch-up:
       scratch-config: <<parameters.scratch-def>>
-      scratch-alias: <<parameters.scratch-alias>>
+      scratch-alias: <<parameters.organization-alias>>
   - source-push:
-      scratch-alias: <<parameters.scratch-alias>>
+      organization-alias: <<parameters.organization-alias>>
   - run:
       name: Assign Permissions
       command: sfdx force:user:permset:assign -n <<parameters.permset>>
   - run:
       name: Load Sample Data
       command: sfdx force:data:tree:import --plan <<parameters.sampledata-path>>
-  - mdapi-deploy:
-      scratch-alias: <<parameters.scratch-alias>>
-      deploy-dir: <<parameters.deploydir>>
-      wait-time: <<parameters.mdapi-wait-time>>
+  - when:
+      condition: << parameters.deploy-dir >>
+      steps:
+        - mdapi-deploy:
+            organization-alias: <<parameters.organization-alias>>
+            deploy-dir: <<parameters.deploy-dir>>
+            wait-time: <<parameters.source-deploy-wait-time>>
+  - when:
+      condition:
+        or: [<< parameters.sourcepath >>, << parameters.manifest >>]
+      steps:
+        - source-deploy:
+            organization-alias: <<parameters.organization-alias>>
+            sourcepath: <<parameters.sourcepath>>
+            manifest: <<parameters.manifest>>
+            wait-time: <<parameters.source-deploy-wait-time>>
   - test:
-      scratch-alias: <<parameters.scratch-alias>>
+      organization-alias: <<parameters.organization-alias>>
       wait-time: <<parameters.test-wait-time>>
   - scratch-down:
-      scratch-alias: <<parameters.scratch-alias>>
+      scratch-alias: <<parameters.organization-alias>>
